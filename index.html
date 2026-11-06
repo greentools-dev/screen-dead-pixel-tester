@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Screen Dead Pixel & OLED Bleed Diagnostic | 100% Client-Side Display Tester</title>
+  <meta name="description" content="Test your monitor, laptop, tablet, or smartphone for stuck sub-pixels, dead pixels, and backlight bleed. Instant fullscreen hardware color cycling with Screen Wake Lock API and zero tracking.">
+  <meta name="keywords" content="dead pixel test, screen dead pixel checker, oled burn in tester, backlight bleed check, monitor test, fullscreen pixel fixer, client-side screen diagnostic">
+  <link rel="canonical" href="https://greentools-dev.github.io/screen-dead-pixel-tester/">
+  <meta property="og:title" content="Screen Dead Pixel & OLED Bleed Diagnostic">
+  <meta property="og:description" content="Fullscreen display auditor with pure primary colors and Screen Wake Lock API. 100% private in-browser tool.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://greentools-dev.github.io/screen-dead-pixel-tester/">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #f8fafc;
+      background-image: 
+        linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    .hud-fade {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .hud-hidden {
+      opacity: 0;
+      transform: translateY(16px);
+      pointer-events: none;
+    }
+  </style>
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "Screen Dead Pixel & OLED Bleed Diagnostic",
+        "url": "https://greentools-dev.github.io/screen-dead-pixel-tester/",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript. Requires HTML5 Fullscreen API.",
+        "description": "Fullscreen monitor and smartphone display audit tool. Cycles primary colors and rapid strobe patterns to detect stuck subpixels and backlight bleed.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is the difference between a dead pixel and a stuck pixel?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A dead pixel is permanently unpowered and appears completely black on white backgrounds. A stuck pixel is locked in an on-state on one or more sub-pixel channels (Red, Green, or Blue) and appears as a bright colored dot on black backgrounds."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can rapid color cycling unstick pixels?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Rapidly cycling contrasting primary colors can occasionally stimulate and reset liquid crystal molecules in stuck subpixels on LCD/IPS panels."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does this tool collect device diagnostics?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. The diagnostic engine utilizes standard native Fullscreen and Screen Wake Lock browser APIs. Zero hardware identifiers or telemetry are ever collected or transmitted."
+            }
+          }
+        ]
+      }
+    ]
+  </script>
+</head>
+<body class="min-h-screen flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-100 selection:text-brand-900">
+
+  <!-- Header -->
+  <header class="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm shadow-emerald-500/20">
+          <i data-lucide="monitor" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-slate-900 tracking-tight text-lg">GreenTools<span class="text-emerald-600">.dev</span></span>
+          <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">Display Audit</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-md border border-slate-200">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+          100% Client-Side Safe
+        </span>
+        <a href="https://github.com/greentools-dev/screen-dead-pixel-tester" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-slate-900 transition-colors p-1.5">
+          <i data-lucide="github" class="w-5 h-5"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero & Primary Container -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-8 md:py-12 flex flex-col items-center">
+    
+    <div class="text-center max-w-2xl mx-auto mb-8">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        Screen Dead Pixel &amp; Backlight Bleed Test
+      </h1>
+      <p class="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed">
+        Audit your monitor, phone, or laptop for dead pixels, stuck subpixels, and IPS glow. Fullscreen hardware testing with Screen Wake Lock to prevent standby sleep.
+      </p>
+    </div>
+
+    <!-- Main Launch Card -->
+    <div class="w-full bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-center flex flex-col items-center max-w-3xl">
+      
+      <!-- Display Icon Graphic -->
+      <div class="w-20 h-20 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mb-6 shadow-inner">
+        <i data-lucide="tv" class="w-10 h-10"></i>
+      </div>
+
+      <h2 class="text-xl font-bold text-slate-900 mb-2">
+        Ready to Audit Your Display
+      </h2>
+      <p class="text-sm text-slate-500 max-w-lg mb-8 leading-relaxed">
+        Clicking below will switch your browser into an immersive, borderless fullscreen canvas. Use the spacebar, arrows, or tap anywhere to step through the test palette.
+      </p>
+
+      <!-- Launch Button -->
+      <button type="button" id="btn-start-fullscreen" class="px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-base transition-all shadow-lg shadow-emerald-600/25 flex items-center gap-3 group">
+        <i data-lucide="maximize" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+        <span>Start Fullscreen Diagnostic</span>
+      </button>
+
+      <!-- Quick Test Palettes Previews -->
+      <div class="mt-8 pt-6 border-t border-slate-100 w-full flex flex-col items-center">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Diagnostic Sequence</span>
+        <div class="flex items-center gap-2 flex-wrap justify-center">
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
+            <span class="w-3.5 h-3.5 rounded-full bg-black border border-slate-300"></span> Pure Black (Bleed)
+          </div>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
+            <span class="w-3.5 h-3.5 rounded-full bg-white border border-slate-300"></span> Pure White (Dead)
+          </div>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
+            <span class="w-3.5 h-3.5 rounded-full bg-red-600"></span> Red Subpixel
+          </div>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
+            <span class="w-3.5 h-3.5 rounded-full bg-green-500"></span> Green Subpixel
+          </div>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
+            <span class="w-3.5 h-3.5 rounded-full bg-blue-600"></span> Blue Subpixel
+          </div>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i> Rapid Cycle
+          </div>
+        </div>
+      </div>
+
+      <!-- Shortcut Keys Info -->
+      <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-500 w-full max-w-xl">
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+          <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono font-bold text-slate-800">Space</kbd> Next Color
+        </div>
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+          <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono font-bold text-slate-800">&larr; / &rarr;</kbd> Navigate
+        </div>
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+          <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono font-bold text-slate-800">S</kbd> Strobe Unsticker
+        </div>
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+          <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono font-bold text-slate-800">Esc</kbd> Exit Test
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sponsor Slot -->
+    <aside id="sponsor-slot" class="mt-8 p-4 rounded-xl border border-dashed border-slate-300 bg-white text-center text-xs text-slate-500 w-full max-w-3xl">
+      <span class="font-semibold text-slate-600 uppercase tracking-wider text-[11px] block mb-1">Sponsored</span>
+      Calibrate your displays and inspect monitor color gamuts with GreenTools Diagnostic Suite.
+    </aside>
+
+    <!-- FAQ & Display Diagnostic Guide -->
+    <section class="mt-12 bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm w-full max-w-3xl">
+      <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+        <i data-lucide="help-circle" class="w-5 h-5 text-emerald-600"></i>
+        Screen Diagnostic Guide & Frequently Asked Questions
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-600">
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">How to inspect for dead pixels?</h3>
+          <p class="leading-relaxed">
+            Switch to the pure white or light grey screen. Carefully scan your display in a grid pattern. Any dead pixel will appear as a tiny, immovable black square where the RGB triad fails to transmit light.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">How to test for IPS glow or backlight bleed?</h3>
+          <p class="leading-relaxed">
+            Dim the ambient lights in your room and switch to the pure black test screen. Look along the bezels and corners for yellowish or white light spilling through the panel casing.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">How does the rapid cycle unstick feature work?</h3>
+          <p class="leading-relaxed">
+            Pressing <kbd class="px-1 rounded bg-slate-100 border text-xs font-mono">S</kbd> launches high-frequency color flashing. This exercises stuck liquid crystal transistors by rapidly toggling voltage across the subpixel channels.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">Does Screen Wake Lock work on mobile?</h3>
+          <p class="leading-relaxed">
+            Yes. On modern Chrome, Edge, and Safari (iOS 16.4+), the Screen Wake Lock API keeps your phone or tablet display active and prevents the automatic screen timeout from interrupting your inspection.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Fullscreen Diagnostic Overlay Container -->
+  <div id="fs-overlay" class="fixed inset-0 z-50 hidden select-none cursor-pointer flex flex-col justify-between p-6">
+    
+    <!-- Top HUD Bar -->
+    <div id="hud-top" class="hud-fade flex items-center justify-between pointer-events-auto">
+      <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/60 backdrop-blur-md text-white text-xs font-mono border border-white/10 shadow-lg">
+        <span id="hud-color-name" class="font-bold">Pure Black</span>
+        <span class="text-white/40">|</span>
+        <span id="hud-color-hex" class="text-emerald-400">#000000</span>
+      </div>
+      <button type="button" id="btn-exit-fs" class="px-3.5 py-2 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold border border-white/10 shadow-lg transition-colors flex items-center gap-1.5">
+        <i data-lucide="x" class="w-4 h-4"></i>
+        <span>Exit (Esc)</span>
+      </button>
+    </div>
+
+    <!-- Center Tap / Click Prompt (fades out) -->
+    <div id="hud-center-hint" class="hud-fade self-center text-center px-4 py-2 rounded-full bg-black/40 backdrop-blur-md text-white/80 text-xs font-medium pointer-events-none">
+      Click screen or press Spacebar to cycle colors
+    </div>
+
+    <!-- Bottom HUD Controls -->
+    <div id="hud-bottom" class="hud-fade flex items-center justify-center gap-3 pointer-events-auto">
+      <div class="flex items-center gap-1 p-1.5 rounded-2xl bg-black/60 backdrop-blur-md text-white border border-white/10 shadow-lg">
+        <button type="button" id="btn-prev-color" class="p-2 rounded-xl hover:bg-white/10 transition-colors" title="Previous Color">
+          <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        <button type="button" id="btn-toggle-strobe" class="px-3 py-2 rounded-xl hover:bg-white/10 text-xs font-semibold transition-colors flex items-center gap-1.5" title="Toggle Strobe">
+          <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+          <span id="strobe-status-text">Strobe (S)</span>
+        </button>
+        <button type="button" id="btn-next-color" class="p-2 rounded-xl hover:bg-white/10 transition-colors" title="Next Color">
+          <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-white mt-12 py-8">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-800">GreenTools.dev</span>
+        <span>&bull;</span>
+        <span>100% Client-Side Web Utilities</span>
+      </div>
+      <div>
+        Hardware Diagnostics &bull; Screen Wake Lock API &bull; Zero Server Analytics
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Logic -->
+  <script>
+    lucide.createIcons();
+
+    // Color Test Sequence
+    const colorSequence = [
+      { name: 'Pure Black (Backlight Bleed & Bright Subpixels)', hex: '#000000' },
+      { name: 'Pure White (Dead Pixels & Panel Uniformity)', hex: '#FFFFFF' },
+      { name: 'Pure Red (Red Subpixel Triad)', hex: '#FF0000' },
+      { name: 'Pure Green (Green Subpixel Triad)', hex: '#00FF00' },
+      { name: 'Pure Blue (Blue Subpixel Triad)', hex: '#0000FF' },
+      { name: 'Magenta Subpixel Gamut', hex: '#FF00FF' },
+      { name: 'Cyan Subpixel Gamut', hex: '#00FFFF' },
+      { name: 'Yellow Subpixel Gamut', hex: '#FFFF00' },
+      { name: 'Neutral 50% Gray (DSE & Dirty Screen Effect)', hex: '#808080' }
+    ];
+
+    let currentColorIndex = 0;
+    let isStrobeActive = false;
+    let strobeInterval = null;
+    let wakeLock = null;
+    let hudTimeout = null;
+
+    // DOM Elements
+    const btnStartFullscreen = document.getElementById('btn-start-fullscreen');
+    const fsOverlay = document.getElementById('fs-overlay');
+    const hudTop = document.getElementById('hud-top');
+    const hudCenterHint = document.getElementById('hud-center-hint');
+    const hudBottom = document.getElementById('hud-bottom');
+    const hudColorName = document.getElementById('hud-color-name');
+    const hudColorHex = document.getElementById('hud-color-hex');
+    const btnExitFs = document.getElementById('btn-exit-fs');
+    const btnPrevColor = document.getElementById('btn-prev-color');
+    const btnNextColor = document.getElementById('btn-next-color');
+    const btnToggleStrobe = document.getElementById('btn-toggle-strobe');
+    const strobeStatusText = document.getElementById('strobe-status-text');
+
+    // Wake Lock Request
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.warn('Wake Lock not supported or rejected:', err);
+        }
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+        }).catch(() => {});
+      }
+    }
+
+    // Update Displayed Color
+    function updateColor(index) {
+      if (isStrobeActive) stopStrobe();
+      currentColorIndex = (index + colorSequence.length) % colorSequence.length;
+      const current = colorSequence[currentColorIndex];
+      fsOverlay.style.backgroundColor = current.hex;
+      hudColorName.textContent = current.name;
+      hudColorHex.textContent = current.hex;
+      showHUD();
+    }
+
+    function nextColor() {
+      updateColor(currentColorIndex + 1);
+    }
+
+    function prevColor() {
+      updateColor(currentColorIndex - 1);
+    }
+
+    // Strobe / Unsticker
+    function startStrobe() {
+      isStrobeActive = true;
+      strobeStatusText.textContent = 'Stop Strobe (S)';
+      btnToggleStrobe.classList.add('bg-amber-500/30', 'text-amber-300');
+      hudColorName.textContent = 'High-Speed Subpixel Strobe';
+      hudColorHex.textContent = '60fps Cycle';
+
+      let strobeIdx = 0;
+      strobeInterval = setInterval(() => {
+        strobeIdx = (strobeIdx + 1) % colorSequence.length;
+        fsOverlay.style.backgroundColor = colorSequence[strobeIdx].hex;
+      }, 50); // 20Hz rapid cycle
+      showHUD();
+    }
+
+    function stopStrobe() {
+      isStrobeActive = false;
+      clearInterval(strobeInterval);
+      strobeStatusText.textContent = 'Strobe (S)';
+      btnToggleStrobe.classList.remove('bg-amber-500/30', 'text-amber-300');
+      updateColor(currentColorIndex);
+    }
+
+    function toggleStrobe() {
+      if (isStrobeActive) {
+        stopStrobe();
+      } else {
+        startStrobe();
+      }
+    }
+
+    // Auto-Hiding HUD
+    function showHUD() {
+      hudTop.classList.remove('hud-hidden');
+      hudBottom.classList.remove('hud-hidden');
+      hudCenterHint.classList.remove('hud-hidden');
+
+      clearTimeout(hudTimeout);
+      hudTimeout = setTimeout(() => {
+        hudTop.classList.add('hud-hidden');
+        hudBottom.classList.add('hud-hidden');
+        hudCenterHint.classList.add('hud-hidden');
+      }, 2500);
+    }
+
+    // Fullscreen Launch & Exit
+    async function startFullscreen() {
+      fsOverlay.classList.remove('hidden');
+      updateColor(0);
+      requestWakeLock();
+
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          await document.documentElement.webkitRequestFullscreen();
+        }
+      } catch (err) {
+        console.warn('Fullscreen denied, continuing in windowed overlay:', err);
+      }
+
+      showHUD();
+    }
+
+    function exitFullscreen() {
+      if (isStrobeActive) stopStrobe();
+      releaseWakeLock();
+      fsOverlay.classList.add('hidden');
+
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen().catch(() => {});
+        }
+      }
+    }
+
+    // Event Listeners
+    btnStartFullscreen.addEventListener('click', startFullscreen);
+    btnExitFs.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exitFullscreen();
+    });
+
+    btnNextColor.addEventListener('click', (e) => {
+      e.stopPropagation();
+      nextColor();
+    });
+
+    btnPrevColor.addEventListener('click', (e) => {
+      e.stopPropagation();
+      prevColor();
+    });
+
+    btnToggleStrobe.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleStrobe();
+    });
+
+    // Clicking anywhere on fullscreen advances color
+    fsOverlay.addEventListener('click', (e) => {
+      // Don't advance if clicking on HUD buttons
+      if (e.target.closest('#hud-top') || e.target.closest('#hud-bottom')) return;
+      nextColor();
+    });
+
+    fsOverlay.addEventListener('mousemove', showHUD);
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (fsOverlay.classList.contains('hidden')) return;
+
+      if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'ArrowDown') {
+        e.preventDefault();
+        nextColor();
+      } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        prevColor();
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        toggleStrobe();
+      } else if (e.key === 'Escape') {
+        exitFullscreen();
+      }
+    });
+
+    // Fullscreen change listener
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        exitFullscreen();
+      }
+    });
+  </script>
+</body>
+</html>
